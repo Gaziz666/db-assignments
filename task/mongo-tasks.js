@@ -22,6 +22,7 @@
  * */
 async function before(db) {
     await db.collection('employees').ensureIndex({CustomerID: 1});
+}
 
 /**
  *  Create a query to return next data ordered by city and then by name:
@@ -1019,60 +1020,6 @@ async function task_1_22(db) {
         },
         {$sort: { "PricePerItem": -1, "CompanyName": 1, "ProductName": 1}}
         
-        
-    /*const result = await db.collection('order-details').aggregate([
-        {
-            $group:{
-                _id: "$OrderID", 
-                "MaxUnitPrice": {$max: "$UnitPrice"}}
-        },
-        
-        
-        {
-            $lookup: {
-                from: "orders",
-                localField: "_id",
-                foreignField: "OrderID",
-                as: "Order"
-            }
-        },
-        {
-            $lookup: {
-                from: "customers",
-                localField: "Order.CustomerID",
-                foreignField: "CustomerID",
-                as: "Сustomer"
-            }
-        },
-        /*
-        {
-            $lookup:
-                {
-                from: "order-details",
-                let: { order_id: "$_id", order_price: "$MaxUnitPrice" },
-                pipeline: [
-                    { $match:
-                        { $expr:
-                            { $and:
-                            [
-                                { $eq: [ "$OrderID",  "$$order_id" ] },
-                                { $eq: [ "$UnitPrice", "$$order_price" ] }
-                            ]
-                            }
-                        }
-                    }
-                ],
-                as: "PR"
-            }
-        },
-        {
-            $lookup: {
-                from: "products",
-                localField: "PR.ProductID",
-                foreignField: "ProductID",
-                as: "PRName"
-            }
-        }*/
     ]).toArray();
     return result;
 }
