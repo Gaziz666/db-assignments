@@ -22,6 +22,9 @@
  * */
 async function before(db) {
     await db.collection('employees').ensureIndex({CustomerID: 1});
+    await db.collection('orders').ensureIndex({CustomerID: 1});
+    await db.collection('order-details').ensureIndex({OrderID: 1, "TotalOrdersAmount, $": 1, MaxUnitPrice: 1});
+    
 }
 
 /**
@@ -591,7 +594,7 @@ async function task_1_17(db) {
                 from: "categories",
                 localField: "_id",
                 foreignField: "CategoryID",
-                as: "Category"
+                as: "Category",
             }
         },
         {
@@ -609,6 +612,7 @@ async function task_1_17(db) {
                 }
             }
         },
+      
         {$sort: {"AvgPrice": -1, "CategoryName": 1}}
     ]).toArray();
     return result;
@@ -873,7 +877,157 @@ async function task_1_21(db) {
  *       https://docs.mongodb.com/manual/reference/operator/aggregation/lookup/#join-conditions-and-uncorrelated-sub-queries
  */
 async function task_1_22(db) {
-    const result = await db.collection('customers').aggregate([
+    const result = await db.collection('order-details').aggregate([
+        {
+            $group:{
+                _id: "$OrderID", 
+                "MaxUnitPrice": {$max: "$UnitPrice"}}
+        },
+        {
+            $lookup:
+                {
+                from: "order-details",
+                let: { order_id: "$_id", order_price: "$MaxUnitPrice" },
+                pipeline: [
+                    { $match:
+                        { $expr:
+                            { $and:
+                            [
+                                { $eq: [ "$OrderID",  "$$order_id" ] },
+                                { $eq: [ "$UnitPrice", "$$order_price" ] }
+                            ]
+                            }
+                        }
+                    }
+                ],
+                as: "PR"
+            }
+        },
+        {
+            $lookup: {
+                from: "products",
+                localField: "PR.ProductID",
+                foreignField: "ProductID",
+                as: "PRName"
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                "OrderID": "$_id",
+                "MaxUnitPrice": 1,
+                "ProductName": {
+                    $reduce: {
+                        input: "$PRName.ProductName",
+                        initialValue: "",
+                        in: "$$this"
+                    }
+                },
+                "ProductID": {
+                    $reduce: {
+                        input: "$PRName.ProductID",
+                        initialValue: "",
+                        in: "$$this"
+                    }
+                }
+            }
+        },
+        {
+            $lookup: {
+                from: "orders",
+                localField: "OrderID",
+                foreignField: "OrderID",
+                as: "Order"
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                "OrderID": 1,
+                "MaxUnitPrice": 1,
+                "ProductName": 1,
+                "ProductID": 1,
+                "CustomerID": {
+                    $reduce: {
+                        input: "$Order.CustomerID",
+                        initialValue: "",
+                        in: "$$this"
+                    }
+                }
+            }
+        },
+        {
+            $group: {
+                _id: "$CustomerID",
+                "MaxUnitPrice": {
+                    $max: "$MaxUnitPrice"
+                    },
+                "OrderIDAndName": {
+                    $push: {"ProductName": "$ProductName", "OrderID": "$OrderID", "CustomerID": "$CustomerID", "MaxUnitPrice": "$MaxUnitPrice"}
+                }
+            }
+        },
+        {
+            $project: {
+                _id: 1,
+                "MaxUnitPrice": 1,
+                "OrderIDAndName": {
+                    $filter: {
+                        input: "$OrderIDAndName",
+                        as: "item",
+                        cond: { $eq: ["$MaxUnitPrice", "$$item.MaxUnitPrice"]}
+                    }
+                }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                "MaxUnitPrice": 1,
+                "CustomerID": {
+                    $reduce: {
+                        input: "$OrderIDAndName.CustomerID",
+                        initialValue: "",
+                        in: "$$this"
+                    }
+                },
+                "ProductName": {
+                    $reduce: {
+                        input: "$OrderIDAndName.ProductName",
+                        initialValue: "",
+                        in: "$$this"
+                    }
+                }
+            }
+        },
+        {
+            $lookup: {
+                from: "customers",
+                localField: "CustomerID",
+                foreignField: "CustomerID",
+                as: "Сustomer"
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                "CustomerID": 1,
+                "CompanyName": {
+                    $reduce: {
+                        input: "$Сustomer.CompanyName",
+                        initialValue: "",
+                        in: "$$this"
+                    }
+                },
+                "ProductName": 1,
+                "PricePerItem": "$MaxUnitPrice"
+            }
+        },
+        {$sort: { "PricePerItem": -1, "CompanyName": 1, "ProductName": 1}}
+    ]).toArray();
+    return result;
+        
+    /*const result = await db.collection('customers').aggregate([
         {
             $lookup: {
                 from:"orders",
@@ -1020,7 +1174,7 @@ async function task_1_22(db) {
         },
         {$sort: { "PricePerItem": -1, "CompanyName": 1, "ProductName": 1}}
         
-    ]).toArray();
+    ]).toArray();*/
     return result;
 }
 
