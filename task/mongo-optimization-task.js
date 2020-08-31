@@ -15,7 +15,7 @@ const ObjectId = require('mongodb').ObjectID;
  * Test timeout is increased to 60sec for the function.
  * */
 async function before(db) {
-    await db.collection('opportunities').createIndex({'initiativeId': 1});
+    await db.collection('opportunities').createIndex({'initiativeId': 1, "contacts.questions.category_id": 1, "contacts": 1 });
 }
 
 /**
@@ -39,8 +39,7 @@ async function before(db) {
  *   8. That's possible to rewrite a few last steps to merge a few pipeline steps in one.
  */
 async function task_3_1(db) {
-    throw new Error("Not implemented"); //remove the line before starting the task
-
+    
     const result = await db.collection('opportunities').aggregate([
         {
             "$match" : {
@@ -59,7 +58,7 @@ async function task_3_1(db) {
                     }
                 }
             }
-        },
+        },/*
         {
             "$unwind" : "$contacts"
         },
@@ -299,7 +298,12 @@ async function task_3_1(db) {
                 'answers.answer_value': 1
             }
         }
-    ], {allowDiskUse:true}).toArray();
+         
+        */
+    ], {allowDiskUse:true}).toArray()
+    //.explain("allPlansExecution");
+    
+    
     return result;
 }
 
