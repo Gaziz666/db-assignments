@@ -15,7 +15,14 @@ const ObjectId = require('mongodb').ObjectID;
  * Test timeout is increased to 60sec for the function.
  * */
 async function before(db) {
-    await db.collection('opportunities').createIndex({'initiativeId': 1, "contacts.questions.category_id": 1, "contacts": 1 });
+    await db.collection('opportunities').createIndex({
+        'initiativeId': 1, 
+        "contacts.questions.category_id": 1, 
+        "contacts.datePublished": 1
+    });
+    await db.collection('clientCriteria').createIndex({
+        "value": 1
+    });
 }
 
 /**
@@ -56,9 +63,30 @@ async function task_3_1(db) {
                             "$ne" : null
                         }
                     }
-                }
+                },
+                
             }
-        },/*
+        },
+        {
+            "$project": {
+                
+                "contacts.datePublished": 1,
+                "contacts.shortListedVendors": 1,
+                "contacts.questions.category_id": 1, 
+                "contacts.questions.answers.primary_answer_value": 1,  
+                "contacts.questions.answers.loop_text": 1,
+                "contacts.questions.criteria_value" : 1,
+                "contacts.questions.answers.criteria_value": 1,
+                "contacts.questions.answers.primary_answer_text": 1,
+                "contacts.id": 1,
+                "contacts.questions.label" : 1,
+                "contacts.questions.raw_text" : 1,
+                "contacts.questions.id" : 1,
+                "contacts.win_vendor": 1,
+                "contacts.questions.answers.loopInstances": 1,
+                
+            }
+        },
         {
             "$unwind" : "$contacts"
         },
@@ -102,7 +130,36 @@ async function task_3_1(db) {
                         105,
                         147
                     ]
-                }
+                },
+                "$nor" : [
+                    {
+                        "contacts.questions.category_id" : 105,
+                        "contacts.questions.answers" : {
+                            "$elemMatch" : {
+                                "primary_answer_value" : {
+                                    "$gte" : 9000
+                                },
+                                "loopInstances" : {
+                                    "$elemMatch" : {
+                                        "is_selected" : true,
+                                        "$or" : [
+                                            {
+                                                "loop_instance" : {
+                                                    "$in" : [
+                                                        50
+                                                    ]
+                                                }
+                                            },
+                                            {
+                                                "loop_text" : "ADP"
+                                            }
+                                        ]
+                                    }
+                                }
+                            }
+                        }
+                    }
+                ]
             }
         },
         {
@@ -242,20 +299,18 @@ async function task_3_1(db) {
         {
             "$lookup" : {
                 "from" : "clientCriteria",
-                "localField" : "criteria_value",
-                "foreignField" : "value",
+                "let": { "criteria": "$criteria_value"},
+                "pipeline": [
+                        {"$match":
+                            { $expr:   
+                                { $eq: [ "$value",  "$$criteria" ] }
+                            }},
+                        {"$match" : 
+                            {"versions.initiativeId": ObjectId("58af4da0b310d92314627290") }
+                        }
+                    
+                    ],
                 "as" : "criteria"
-            }
-        },
-        {
-            "$unwind" : "$criteria"
-        },
-        {
-            "$unwind" : "$criteria.versions"
-        },
-        {
-            "$match" : {
-                "criteria.versions.initiativeId" : ObjectId("58af4da0b310d92314627290")
             }
         },
         {
@@ -276,12 +331,12 @@ async function task_3_1(db) {
                         "answer_value" : "$contacts.questions.answers.primary_answer_value",
                         "selected" : "$contacts.questions.answers.loopInstances.is_selected",
                         "value" : "$criteria_value",
-                        "text" : "$criteria.label",
-                        "definition" : {
-                            "$ifNull" : [
-                                "$criteria.versions.definition",
-                                "$criteria.definition"
-                            ]
+                        "text" : {"$first": "$criteria.label"},
+                        "definition" : {"$first": 
+                            {"$ifNull" : [
+                                {"$first": "$criteria.versions.definition"},
+                                {"$first": "$criteria.definition"}
+                            ]}
                         }
                     }
                 },
@@ -299,8 +354,8 @@ async function task_3_1(db) {
             }
         }
          
-        */
-    ], {allowDiskUse:true}).toArray()
+        
+    ], {allowDiskUse: true}).toArray()
     //.explain("allPlansExecution");
     
     
