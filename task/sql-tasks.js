@@ -277,7 +277,9 @@ return result[0];}
 async function task_1_13(db) {
     let result = await db.query(`
     SELECT 
-        (SELECT COUNT(ProductID))as TotalOfCurrentProducts, 
+        (
+            SELECT COUNT(ProductID)
+        ) as TotalOfCurrentProducts, 
         (
             SELECT COUNT(Discontinued)
             FROM Products
@@ -315,69 +317,20 @@ return result[0];
 async function task_1_15(db) {
     let result = await db.query(`
         SELECT
-        (
-            SELECT COUNT(OrderDate)
-            FROM  Orders
-            WHERE month(OrderDate) = 1 AND year(OrderDate) = 1997
-        ) as January, 
-        (
-            SELECT COUNT(OrderDate)
-            FROM  Orders
-            WHERE month(OrderDate) = 2 AND year(OrderDate) = 1997
-        ) as February, 
-        (
-            SELECT COUNT(OrderDate)
-            FROM  Orders
-            WHERE month(OrderDate) = 3 AND year(OrderDate) = 1997
-        ) as March,
-        (
-            SELECT COUNT(OrderDate)
-            FROM  Orders
-            WHERE month(OrderDate) = 4 AND year(OrderDate) = 1997
-        ) as April,
-        (
-            SELECT COUNT(OrderDate)
-            FROM  Orders
-            WHERE month(OrderDate) = 5 AND year(OrderDate) = 1997
-        ) as May,
-        (
-            SELECT COUNT(OrderDate)
-            FROM  Orders
-            WHERE month(OrderDate) = 6 AND year(OrderDate) = 1997
-        ) as June,
-        (
-            SELECT COUNT(OrderDate)
-            FROM  Orders
-            WHERE month(OrderDate) = 7 AND year(OrderDate) = 1997
-        ) as July,
-        (
-            SELECT COUNT(OrderDate)
-            FROM  Orders
-            WHERE month(OrderDate) = 8 AND year(OrderDate) = 1997
-        ) as August,
-        (
-            SELECT COUNT(OrderDate)
-            FROM  Orders
-            WHERE month(OrderDate) = 9 AND year(OrderDate) = 1997
-        ) as September,
-        (
-            SELECT COUNT(OrderDate)
-            FROM  Orders
-            WHERE month(OrderDate) = 10 AND year(OrderDate) = 1997
-        ) as October,
-        (
-            SELECT COUNT(OrderDate)
-            FROM  Orders
-            WHERE month(OrderDate) = 11 AND year(OrderDate) = 1997
-        ) as November,
-        (
-            SELECT COUNT(OrderDate)
-            FROM  Orders
-            WHERE month(OrderDate) = 12 AND year(OrderDate) = 1997
-        ) as December
+        count(IF (month(OrderDate) = 1, 1, null)) as January, 
+        count(IF (month(OrderDate) = 2, 1, null)) as February, 
+        count(IF (month(OrderDate) = 3, 1, null)) as March,
+        count(IF (month(OrderDate) = 4, 1, null)) as April,
+        count(IF (month(OrderDate) = 5, 1, null)) as May,
+        count(IF (month(OrderDate) = 6, 1, null)) as June,
+        count(IF (month(OrderDate) = 7, 1, null)) as July,
+        count(IF (month(OrderDate) = 8, 1, null)) as August,
+        count(IF (month(OrderDate) = 9, 1, null)) as September,
+        count(IF (month(OrderDate) = 10, 1, null)) as October,
+        count(IF (month(OrderDate) = 11, 1, null)) as November,
+        count(IF (month(OrderDate) = 12, 1, null)) as December
         FROM Orders
         WHERE year(OrderDate) = 1997
-        LIMIT 1
     `);
 return result[0];
 }
