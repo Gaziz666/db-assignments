@@ -331,14 +331,17 @@ async function task_3_1(db) {
                         "answer_value" : "$contacts.questions.answers.primary_answer_value",
                         "selected" : "$contacts.questions.answers.loopInstances.is_selected",
                         "value" : "$criteria_value",
-                        "text" : {"$first": "$criteria.label"},
-                        "definition" : {"$first": 
-                            {"$ifNull" : [
-                                {"$first": "$criteria.versions.definition"},
-                                {"$first": "$criteria.definition"}
-                            ]}
+                        "text" : {"$arrayElemAt": ["$criteria.label", 0]},
+                        "definition" : { 
+                            "$arrayElemAt":[
+                                {"$ifNull" : [
+                                    {"$arrayElemAt": ["$criteria.versions.definition", 0]},
+                                    {"$arrayElemAt": ["$criteria.definition", 0]}
+                                ]}, 0
+                            ]
                         }
                     }
+                    
                 },
                 "count" : {
                     "$sum" : 1
