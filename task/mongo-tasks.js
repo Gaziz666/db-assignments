@@ -689,22 +689,22 @@ async function task_1_18(db) {
  *       - do not hesitate to "ensureIndex" in "before" function at the top if needed https://docs.mongodb.com/manual/reference/method/db.collection.ensureIndex/
  */
 async function task_1_19(db) {
-     const result = await db.collection('order-details').aggregate([
+     const result = await db.collection('orders').aggregate([
         {
             $lookup: {
-                from: "orders",
+                from: "order-details",
                 localField: "OrderID",
                 foreignField: "OrderID",
-                as: "Orders"
+                as: "OD"
             }
         }, 
         {
-            $unwind: "$Orders"
+            $unwind: "$OD"
         },
         {
             $group: {
-                _id: "$Orders.CustomerID",
-                "TotalOrdersAmount, $": {$sum: {$multiply: ["$UnitPrice", "$Quantity"]}}
+                _id: "$CustomerID",
+                "TotalOrdersAmount, $": {$sum: {$multiply: ["$OD.UnitPrice", "$OD.Quantity"]}}
             }
         },
         {
