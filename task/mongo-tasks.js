@@ -791,53 +791,6 @@ async function task_1_20(db) {
         
     ]).toArray()
     return result
-/*    const result = await db.collection('order-details').aggregate([
-        {
-            $lookup: {
-                from: "orders",
-                localField: "OrderID",
-                foreignField: "OrderID",
-                as: "Orders"
-            }
-        },
-        {
-            $unwind: "$Orders"
-        },
-        {
-            $group: {
-                _id: "$Orders.EmployeeID",
-                "Amount, $": {$sum: {$multiply: ["$UnitPrice", "$Quantity"]}}
-            }
-        },
-        {
-            $sort: {"Amount, $": -1}
-        },
-        {
-            $limit: 1
-        },
-        {
-            $lookup: {
-                from: "employees",
-                localField: "_id",
-                foreignField: "EmployeeID",
-                as: "Employees"
-            }
-        },
-        {
-            $unwind: "$Employees"
-        },
-        {
-            $project:{
-                _id: 0,
-                "EmployeeID": "$_id",
-                "Employee Full Name": {
-                    $concat: ["$Employees.FirstName", " ", "$Employees.LastName"]
-                },
-                "Amount, $": 1
-            }
-        }
-    ]).toArray();
-    return result;*/
 }
 
 /**
@@ -878,7 +831,91 @@ async function task_1_21(db) {
  *       https://docs.mongodb.com/manual/reference/operator/aggregation/lookup/#join-conditions-and-uncorrelated-sub-queries
  */
 async function task_1_22(db) {
-    const result = await db.collection('order-details').aggregate([
+    const result = await db.collection('orders').aggregate([
+        {
+            $lookup: {
+                from: "order-details",
+                localField: "OrderID",
+                foreignField: "OrderID",
+                as: "OD"
+            }
+        },
+        {
+            $unwind: "$OD"
+        },
+        {
+            $group: {
+                _id: "$CustomerID",
+                "MaxPrice": {
+                    $max: "$OD.UnitPrice"
+                },
+                "Product": {
+                    $push: {"ProductID": "$OD.ProductID", "Price": "$OD.UnitPrice"}
+                }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                "CustomerID": "$_id",
+                "MaxPrice": 1,
+                "Product": {
+                    $filter: {
+                        input: "$Product",
+                        as: "item",
+                        cond: { $eq: ["$MaxPrice", "$$item.Price"]}
+                    }
+                }
+                
+            }
+        },
+        {
+            $unwind: "$Product"
+        },
+        {
+            $lookup: {
+                from: "products",
+                localField: "Product.ProductID",
+                foreignField: "ProductID",
+                as: "Product"
+            }
+        },
+        {
+            $unwind: "$Product"
+        },
+        {
+            $lookup: {
+                from: "customers",
+                localField: "CustomerID",
+                foreignField: "CustomerID",
+                as: "customer"
+            }
+        },
+        {
+            $unwind: "$customer"
+        },
+        {
+            $group: {
+                _id: {
+                    "CustomerID": "$CustomerID", 
+                    "CompanyName": "$customer.CompanyName",
+                    "ProductName": "$Product.ProductName",
+                    "PricePerItem": "$MaxPrice"
+                }
+            }
+        },
+        {
+            $project: {
+                _id: 0,
+                "CustomerID": "$_id.CustomerID", 
+                "CompanyName": "$_id.CompanyName",
+                "ProductName": "$_id.ProductName",
+                "PricePerItem": "$_id.PricePerItem"
+            }
+        },
+        {$sort: { "PricePerItem": -1, "CompanyName": 1, "ProductName": 1}}
+
+  /*  const result = await db.collection('order-details').aggregate([
         {
             $group:{
                 _id: "$OrderID", 
@@ -1025,6 +1062,7 @@ async function task_1_22(db) {
             }
         },
         {$sort: { "PricePerItem": -1, "CompanyName": 1, "ProductName": 1}}
+        */
     ]).toArray();
     return result;
 }
